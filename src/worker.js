@@ -173,6 +173,10 @@ function computeQualified(standings) {
 
   let thirds = [];
   if (letters.length >= 12 && completeGroups === letters.length) {
+    // Approximation of FIFA's best-thirds ranking: we apply the first three
+    // criteria (points, goal difference, goals scored). The remaining
+    // tiebreakers — disciplinary points and drawing of lots — aren't in the
+    // ESPN feed, so a tie this deep would resolve in arbitrary (array) order.
     thirds = allThirds
       .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
       .slice(0, 8);
