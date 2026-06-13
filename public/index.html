@@ -481,7 +481,7 @@ footer {
   display: flex; flex-direction: column-reverse; gap: 8px;
   z-index: 9999; pointer-events: none; max-width: 300px;
 }
-@media (max-width: 540px) { .toast-rack { left: 12px; right: 12px; bottom: 16px; max-width: none; } }
+@media (max-width: 540px) { .toast-rack { left: 12px; right: 12px; bottom: calc(68px + env(safe-area-inset-bottom, 0px) + 12px); max-width: none; } }
 .toast {
   background: var(--surf2); border: 1px solid var(--line2);
   border-left: 3px solid var(--teal); border-radius: 10px;
