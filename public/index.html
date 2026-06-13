@@ -713,7 +713,7 @@ let everAutoNavLive = false;     // only auto-switch to Live tab once per sessio
 ══════════════════════════════════════════════ */
 const API = ""; // same-origin: Worker serves both HTML and /api/*
 
-async function fetchData() {
+async function fetchData({ silent = false } = {}) {
   try {
     captureScores();
     captureStatuses();
@@ -730,8 +730,12 @@ async function fetchData() {
     }
     if (mRes.ok) {
       const j = await mRes.json();
-      detectGoals(j.matches);
-      detectKickoffs(j.matches);
+      // silent = first sync after returning from background: don't replay
+      // a burst of goal/kickoff toasts for everything that happened while away
+      if (!silent) {
+        detectGoals(j.matches);
+        detectKickoffs(j.matches);
+      }
       matchesData = j.matches;
     }
 
@@ -1196,6 +1200,12 @@ function renderBracket() {
         ${thirdHtml}
       </div>`;
   }).join("");
+
+  // innerHTML above wiped the connector SVG — redraw it if the bracket
+  // is on screen (e.g. an auto-refresh landed while viewing this tab)
+  if (document.getElementById("view-bracket")?.classList.contains("active")) {
+    requestAnimationFrame(() => drawBracketConnectors());
+  }
 }
 
 /* ══════════════════════════════════════════════
@@ -1655,7 +1665,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     clearTimeout(refreshTimer);
   } else {
-    fetchData().then(scheduleRefresh);
+    fetchData({ silent: true }).then(scheduleRefresh);
   }
 });
 
