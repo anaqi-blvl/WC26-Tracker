@@ -775,6 +775,7 @@ function getTeamForm(teamName) {
   return matchesData
     .filter(m => matchState(m.status) === 'ft' &&
       (m.home?.name === teamName || m.away?.name === teamName))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(-3)
     .map(m => {
       const myG = m.home?.name === teamName ? (m.home?.goals ?? 0) : (m.away?.goals ?? 0);
@@ -1639,6 +1640,7 @@ let refreshTimer = null;
 
 function scheduleRefresh() {
   clearTimeout(refreshTimer);
+  if (document.hidden) return; // paused while backgrounded — resumes on visibility
   const hasLive = matchesData?.some(m => matchState(m.status) === "live");
   const delay = hasLive ? 30_000 : 60_000;
   refreshTimer = setTimeout(async () => {
@@ -1646,6 +1648,16 @@ function scheduleRefresh() {
     scheduleRefresh();
   }, delay);
 }
+
+// Pause polling when the tab/app is backgrounded; on return, refresh
+// immediately (data may be minutes stale) and restart the timer.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    clearTimeout(refreshTimer);
+  } else {
+    fetchData().then(scheduleRefresh);
+  }
+});
 
 /* ══════════════════════════════════════════════
    TABS

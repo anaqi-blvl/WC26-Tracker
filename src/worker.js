@@ -78,9 +78,11 @@ const ROUND_NAMES = {
 };
 
 // Knockout slots that aren't decided yet have placeholder "teams" like
-// "Group C Winner" or "Round of 32 4 Winner" — don't treat those as real teams.
+// "Group C Winner", "Winners Match 73", "Runner-up Group A" or "TBD".
+// Match defensively on placeholder tokens — no real WC team name contains
+// any of these, so we'd rather blank an unknown slot than print junk.
 const isPlaceholder = name =>
-  /(winner|loser)\s*$|2nd place\s*$|^third place group/i.test(name ?? "");
+  /(winner|loser|runner[- ]?up|2nd place|third place|best\b|\bmatch\s*\d|\btbd\b|to be determined)/i.test(name ?? "");
 
 // R32 placeholders encode the exact bracket slot ("Group C Winner" → "1C") —
 // lets the frontend pin those fixtures to the right bracket cell.
