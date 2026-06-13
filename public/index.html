@@ -44,7 +44,10 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+body::-webkit-scrollbar { display: none; }
 
 /* ── Header ───────────────────────────────── */
 header {
@@ -114,8 +117,6 @@ nav { display: flex; gap: 0; margin-top: 12px; }
   .tab { padding: 10px 13px; font-size: 13px; letter-spacing: .07em; white-space: nowrap; }
   .t-wide { display: none; }
   .t-mob { display: inline; }
-  body { scrollbar-width: none; -ms-overflow-style: none; }
-  body::-webkit-scrollbar { display: none; }
 }
 
 /* ── Layout ───────────────────────────────── */
