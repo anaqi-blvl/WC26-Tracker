@@ -1616,6 +1616,7 @@ function updateStatusBadge() {
     badge.onclick = async () => {
       if (badge.dataset.refreshing) return;
       badge.dataset.refreshing = '1';
+      clearTimeout(refreshTimer); // don't let the auto-timer fire a concurrent fetch
       text.textContent = 'Updating…';
       await fetchData();
       delete badge.dataset.refreshing;
@@ -1760,7 +1761,13 @@ document.addEventListener?.("click", e => {
   });
 });
 
-window.addEventListener("resize", () => drawBracketConnectors());
+// Debounce to one redraw per frame — resize fires rapidly during mobile
+// address-bar show/hide, and each redraw measures every bracket slot.
+let connectorRAF = null;
+window.addEventListener("resize", () => {
+  if (connectorRAF) cancelAnimationFrame(connectorRAF);
+  connectorRAF = requestAnimationFrame(() => { connectorRAF = null; drawBracketConnectors(); });
+});
 
 /* ══════════════════════════════════════════════
    BOOT
