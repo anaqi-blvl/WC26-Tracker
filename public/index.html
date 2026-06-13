@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>World Cup 26 — Live Tracker</title>
 <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
 <link rel="icon" type="image/png" href="/icon.png">
@@ -500,6 +500,49 @@ footer {
 .toast.kickoff .toast-score { color: var(--amber); }
 .toast.ft { border-left-color: var(--dim); }
 .toast.ft .toast-score { color: var(--dim); }
+
+/* ── Form guide dots ──────────────────────────── */
+.form-dots { display: flex; gap: 3px; align-items: center; flex-shrink: 0; margin-left: 6px; }
+.fd { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.fd-W { background: var(--teal); }
+.fd-D { background: var(--amber); }
+.fd-L { background: var(--red); }
+
+/* ── Refresh badge ────────────────────────────── */
+.live-badge.refreshable { cursor: pointer; transition: opacity .15s; }
+.live-badge.refreshable:hover { opacity: .75; }
+
+/* ── Bottom nav (mobile only) ─────────────────── */
+.bottom-nav { display: none; }
+
+@media (max-width: 540px) {
+  header nav { display: none; }
+  main { padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+
+  .bottom-nav {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: rgba(11,20,16,.97); backdrop-filter: blur(20px);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bottom-nav .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; padding: 10px 4px;
+    font-family: var(--display); font-size: 10px; font-weight: 400;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--faint); background: none; border: none; border-bottom: none;
+    cursor: pointer; transition: color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bottom-nav .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; flex-shrink: 0; }
+  .bottom-nav .tab:active { color: var(--text); }
+  .bottom-nav .tab.active { color: var(--teal); }
+  .bottom-nav .tab.live-tab,
+  .bottom-nav .tab.live-tab.active { color: var(--red); }
+  .bottom-nav .lt-inner { display: flex; align-items: center; gap: 3px; }
+  .bottom-nav .lt-pulse { width: 5px; height: 5px; border-radius: 50%; background: var(--red); animation: pulse 1.8s ease-in-out infinite; flex-shrink: 0; }
+  .bottom-nav .lt-count { font-size: 10px; color: var(--red); letter-spacing: 0; }
+}
 </style>
 </head>
 <body>
@@ -717,6 +760,19 @@ function groupMatches(groupLetter) {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
+function getTeamForm(teamName) {
+  if (!matchesData) return [];
+  return matchesData
+    .filter(m => matchState(m.status) === 'ft' &&
+      (m.home?.name === teamName || m.away?.name === teamName))
+    .slice(-3)
+    .map(m => {
+      const myG = m.home?.name === teamName ? (m.home?.goals ?? 0) : (m.away?.goals ?? 0);
+      const opG = m.home?.name === teamName ? (m.away?.goals ?? 0) : (m.home?.goals ?? 0);
+      return myG > opG ? 'W' : myG < opG ? 'L' : 'D';
+    });
+}
+
 function renderGroups() {
   const grid = document.getElementById("groups-grid");
   if (!standingsData) { showError(); return; }
@@ -768,10 +824,14 @@ function renderGroups() {
         ? `<img class="tlogo" src="${t.logo}" alt="" loading="lazy">`
         : "";
       const wdl = t.played > 0 ? `${t.win}–${t.draw}–${t.lose}` : "–";
+      const form = getTeamForm(t.name);
+      const formHtml = form.length
+        ? `<span class="form-dots">${form.map(r => `<span class="fd fd-${r}" title="${r}"></span>`).join('')}</span>`
+        : '';
       return `
         <div class="trow ${rowCls} ${isCanada ? "canada" : ""}">
           <div class="pos">${hasPlay ? i+1 : "·"}</div>
-          <div class="tm">${logoHtml}<span class="tname">${t.name}</span></div>
+          <div class="tm">${logoHtml}<span class="tname">${t.name}</span>${formHtml}</div>
           <div class="n">${t.played}</div>
           <div class="n">${wdl}</div>
           <div class="n">${t.gd > 0 ? "+" : ""}${t.gd}</div>
@@ -787,7 +847,7 @@ function renderGroups() {
       <div class="gcard ${cardCls}" id="group-${letter}">
         <div class="ghead">
           <div class="gletter">${letter}</div>
-          <div style="font-stretch:75%;font-weight:500;font-size:14px;letter-spacing:.05em;text-transform:uppercase">Group ${letter}</div>
+          <div style="font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.05em;text-transform:uppercase">Group ${letter}</div>
           <div class="gstatus ${statusCls}">${statusText}</div>
         </div>
         ${resultRows ? `<div class="gresults">${resultRows}</div>` : ""}
@@ -1336,20 +1396,25 @@ function showGoalToast(m, side) {
 
 function syncLiveTab() {
   const live = (matchesData || []).filter(m => matchState(m.status) === 'live');
-  const btn  = document.getElementById('live-tab-btn');
+  const btn      = document.getElementById('live-tab-btn');
+  const bnavBtn  = document.getElementById('bnav-live-btn');
   if (!btn) return;
 
   if (live.length > 0) {
     const wasHidden = btn.style.display === 'none';
     btn.style.display = '';
     btn.querySelector('.lt-count').textContent = live.length > 1 ? ` ×${live.length}` : '';
-    // Auto-switch to Live tab exactly once per session (on first live match)
+    if (bnavBtn) {
+      bnavBtn.style.display = '';
+      document.getElementById('bnav-count').textContent = live.length > 1 ? ` ×${live.length}` : '';
+    }
     if (wasHidden && !everAutoNavLive) {
       everAutoNavLive = true;
       activateTab('live');
     }
   } else {
     btn.style.display = 'none';
+    if (bnavBtn) bnavBtn.style.display = 'none';
     if (document.querySelector('.tab.active')?.dataset.view === 'live') {
       activateTab('matches');
     }
@@ -1505,6 +1570,13 @@ function updatePageTitle() {
 /* ══════════════════════════════════════════════
    STATUS BADGE + FOOTER
 ══════════════════════════════════════════════ */
+function relTime(ts) {
+  const mins = Math.round((Date.now() - ts) / 60_000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  return `${Math.round(mins / 60)}h ago`;
+}
+
 function updateStatusBadge() {
   const badge = document.getElementById("live-badge");
   const text  = document.getElementById("live-text");
@@ -1512,13 +1584,24 @@ function updateStatusBadge() {
 
   if (hasLive) {
     badge.classList.add("active");
+    badge.classList.remove("refreshable");
+    badge.onclick = null;
     text.textContent = "Live";
   } else if (lastUpdated) {
-    const d = new Date(lastUpdated);
-    const t = d.toLocaleTimeString("en-CA", { hour:"numeric", minute:"2-digit", hour12:true });
     badge.classList.remove("active");
-    text.textContent = `Updated ${t}`;
+    badge.classList.add("refreshable");
+    text.textContent = `↺ ${relTime(lastUpdated)}`;
+    badge.onclick = async () => {
+      if (badge.dataset.refreshing) return;
+      badge.dataset.refreshing = '1';
+      text.textContent = 'Updating…';
+      await fetchData();
+      delete badge.dataset.refreshing;
+      scheduleRefresh();
+    };
   } else {
+    badge.classList.remove("active", "refreshable");
+    badge.onclick = null;
     text.textContent = "–";
   }
 
@@ -1650,7 +1733,35 @@ window.addEventListener("resize", () => drawBracketConnectors());
 ══════════════════════════════════════════════ */
 renderBracket();
 fetchData().then(scheduleRefresh);
+
+setInterval(() => {
+  const badge = document.getElementById("live-badge");
+  const text  = document.getElementById("live-text");
+  const hasLive = matchesData?.some(m => matchState(m.status) === "live");
+  if (!hasLive && lastUpdated && !badge?.dataset.refreshing) {
+    text.textContent = `↺ ${relTime(lastUpdated)}`;
+  }
+}, 30_000);
 </script>
 <div class="toast-rack" id="toast-rack"></div>
+
+<nav class="bottom-nav" role="tablist" aria-label="Main navigation">
+  <button class="tab live-tab" role="tab" data-view="live" id="bnav-live-btn" style="display:none">
+    <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a6 6 0 0 0 0 7M15.5 8.5a6 6 0 0 1 0 7"/><path d="M5 5a13 13 0 0 0 0 14M19 5a13 13 0 0 1 0 14"/></svg>
+    <span class="lt-inner"><span class="lt-pulse"></span><span>Live</span><span class="lt-count" id="bnav-count"></span></span>
+  </button>
+  <button class="tab active" role="tab" data-view="matches">
+    <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>Matches</span>
+  </button>
+  <button class="tab" role="tab" data-view="groups">
+    <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span>Groups</span>
+  </button>
+  <button class="tab" role="tab" data-view="bracket">
+    <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="9" y2="7"/><line x1="4" y1="17" x2="9" y2="17"/><line x1="9" y1="7" x2="9" y2="17"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="15" y1="9" x2="15" y2="15"/><line x1="15" y1="12" x2="20" y2="12"/></svg>
+    <span>Bracket</span>
+  </button>
+</nav>
 </body>
 </html>
