@@ -812,8 +812,9 @@ function fmtTime(d) {
   const h12 = hr % 12 || 12;
   return min === 0 ? `${h12}${ampm}` : `${h12}:${String(min).padStart(2,"0")}${ampm}`;
 }
-function isToday(d) {
-  return new Date(d).toDateString() === new Date().toDateString();
+function isComingUp(d) {
+  const ms = new Date(d) - Date.now();
+  return ms > 0 && ms < 24 * 60 * 60 * 1000;
 }
 function countdown(d) {
   const ms = new Date(d) - Date.now();
@@ -878,7 +879,7 @@ function matchRow(m) {
     ? `<span class="tname">${t.name}</span>`
     : `<span class="tbd">TBD</span>`;
 
-  const today = state === "ns" && isToday(m.date);
+  const today = state === "ns" && isComingUp(m.date);
 
   let score;
   if (state === "live") {
@@ -900,7 +901,7 @@ function matchRow(m) {
 
   return `
     <div class="mrow ${rowCls}" ${navAttr}>
-      <div class="mmeta"><span>${today ? "Today" : fmtDate(m.date)} · ${m.round || ""}</span>${today ? `<span class="mcountdown" data-ko="${new Date(m.date).getTime()}">${countdown(m.date)}</span>` : ""}</div>
+      <div class="mmeta"><span>${fmtDate(m.date)} · ${m.round || ""}</span>${today ? `<span class="mcountdown" data-ko="${new Date(m.date).getTime()}">${countdown(m.date)}</span>` : ""}</div>
       <div class="mteam home ${hCls}">${logo(m.home)}${name(m.home)}</div>
       ${score}
       <div class="mteam ${aCls}">${name(m.away)}${logo(m.away)}</div>
@@ -924,8 +925,8 @@ function renderMatchList() {
   const byDate = (a, b) => new Date(a.date) - new Date(b.date);
   const live      = matchesData.filter(m => matchState(m.status) === "live").sort(byDate);
   const ns        = matchesData.filter(m => matchState(m.status) === "ns").sort(byDate);
-  const today     = ns.filter(m => isToday(m.date));
-  const upcoming  = ns.filter(m => !isToday(m.date));
+  const today     = ns.filter(m => isComingUp(m.date));
+  const upcoming  = ns.filter(m => !isComingUp(m.date));
   const completed = matchesData.filter(m => matchState(m.status) === "ft").sort((a, b) => byDate(b, a));
 
   // Preserve open/closed state across re-renders
@@ -944,7 +945,7 @@ function renderMatchList() {
 
   el.innerHTML =
     sec(`<span style="color:var(--red)">● Live now</span>`, live, "live") +
-    sec(`<span style="color:var(--amber)">● Today</span>`, today, "today") +
+    sec(`<span style="color:var(--amber)">● Coming up</span>`, today, "comingup") +
     sec("Upcoming", upcoming, "upcoming") +
     sec("Completed", completed, "completed", false);
 }
