@@ -245,8 +245,14 @@ async function runUpdate(env, { force = false } = {}) {
     if (force || justFinished || inPostMatchWindow || stale || !haveStandings) {
       const standings = await fetchStandings();
       if (standings && Object.keys(standings).length > 0) {
-        await env.WC26_KV.put(KV_STANDINGS, JSON.stringify(standings));
-        await env.WC26_KV.put(KV_QUALIFIED, JSON.stringify(computeQualified(standings)));
+        // Only write when standings actually changed — the stale/post-match
+        // windows refetch every tick but standings rarely differ between them.
+        // qualified is derived from standings, so one guard covers both keys.
+        const standingsJson = JSON.stringify(standings);
+        if (standingsJson !== haveStandings) {
+          await env.WC26_KV.put(KV_STANDINGS, standingsJson);
+          await env.WC26_KV.put(KV_QUALIFIED, JSON.stringify(computeQualified(standings)));
+        }
       }
     }
 
