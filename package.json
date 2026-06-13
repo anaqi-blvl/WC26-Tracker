@@ -1,0 +1,17 @@
+{
+  "name": "wc26-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FIFA World Cup 2026 live tracker — Cloudflare Worker + KV",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:html": "node deploy-html.js",
+    "deploy:all": "wrangler deploy && node deploy-html.js",
+    "kv:create": "wrangler kv:namespace create WC26_KV",
+    "refresh": "curl -s -X GET https://YOUR_WORKER_DOMAIN/api/refresh -H 'x-refresh-secret: YOUR_SECRET' | jq"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

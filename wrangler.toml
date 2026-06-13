@@ -1,0 +1,26 @@
+name = "wc26-tracker"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+# ── Routes (optional custom domain) ──────────────────────────────────────────
+# Uncomment and set your own domain, or remove this block to use the
+# default *.workers.dev URL that Cloudflare assigns automatically.
+# routes = [
+#   { pattern = "your-domain.com", custom_domain = true }
+# ]
+
+# ── KV namespace ──────────────────────────────────────────────────────────────
+[[kv_namespaces]]
+binding = "WC26_KV"
+id = "88f7cafdd6744bbfb7f152403800268d"
+preview_id = "4f41357b530b4123a6e23033a8242a76"
+
+# ── Cron triggers ─────────────────────────────────────────────────────────────
+# Fires every 2 min during match hours, but the worker is adaptive: it only
+# hits ESPN when a match is live / about to kick off, otherwise every 30 min.
+# Outside match hours a slow heartbeat keeps the cache from going stale.
+[triggers]
+crons = [
+  "* 14-23,0-4 * * *",
+  "0 5-13/2 * * *"
+]

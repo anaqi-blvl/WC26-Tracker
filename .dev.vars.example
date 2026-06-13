@@ -1,0 +1,5 @@
+# Copy this file to .dev.vars and fill in your values.
+# .dev.vars is gitignored and never committed.
+
+# Protects the /api/refresh endpoint — generate with: openssl rand -hex 32
+REFRESH_SECRET=your-secret-here
