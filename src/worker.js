@@ -25,9 +25,8 @@ const ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/soccer/fi
 const KV_STANDINGS = "standings_v1";
 const KV_MATCHES   = "matches_v2";
 const KV_QUALIFIED = "qualified_v1";
-const KV_META      = "meta_v1";        // { lastFetch: epoch-ms }
+const KV_META      = "meta_v1";        // { lastFetch: epoch-ms, updated: ISO }
 const KV_HTML      = "html";
-const KV_UPDATED   = "last_updated";
 
 const LIVE_STATUSES  = ["1H", "2H", "HT", "ET", "P", "BT"];
 const SOON_MS        = 15 * 60 * 1000;  // refresh window before kickoff
@@ -222,8 +221,11 @@ async function runUpdate(env, { force = false } = {}) {
 
   try {
     const matches = await fetchMatches();
-    if (matches.length > 0) {
-      await env.WC26_KV.put(KV_MATCHES, JSON.stringify(matches));
+    const matchesJson = matches.length > 0 ? JSON.stringify(matches) : null;
+    // Only write when the payload actually changed — saves KV writes during
+    // quiet "soon"/post-match windows where scores haven't moved.
+    if (matchesJson && matchesJson !== cachedRaw) {
+      await env.WC26_KV.put(KV_MATCHES, matchesJson);
     }
 
     // Did any match just finish? → standings (and qualification) changed.
@@ -249,8 +251,8 @@ async function runUpdate(env, { force = false } = {}) {
     }
 
     meta.lastFetch = now;
+    meta.updated = new Date(now).toISOString();
     await env.WC26_KV.put(KV_META, JSON.stringify(meta));
-    await env.WC26_KV.put(KV_UPDATED, new Date(now).toISOString());
     console.log(`[WC26] Updated — ${matches.length} matches (live=${anyLive}, finished=${justFinished}, postMatch=${inPostMatchWindow})`);
   } catch (err) {
     console.error(`[WC26] Update failed: ${err.message}`);
@@ -260,6 +262,16 @@ async function runUpdate(env, { force = false } = {}) {
 // ─────────────────────────────────────────────
 // HTTP request handler
 // ─────────────────────────────────────────────
+
+// Resolve the "last updated" timestamp from meta. Prefer the explicit ISO
+// `updated` field, but fall back to `lastFetch` (epoch-ms) so the timestamp
+// still resolves for meta written by older worker versions.
+function resolveUpdated(metaRaw) {
+  if (!metaRaw) return null;
+  const meta = JSON.parse(metaRaw);
+  if (meta.updated) return meta.updated;
+  return meta.lastFetch ? new Date(meta.lastFetch).toISOString() : null;
+}
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -288,11 +300,12 @@ async function handleRequest(request, env) {
   }
 
   if (url.pathname === "/api/standings") {
-    const [cached, qualified, updated] = await Promise.all([
+    const [cached, qualified, metaRaw] = await Promise.all([
       env.WC26_KV.get(KV_STANDINGS),
       env.WC26_KV.get(KV_QUALIFIED),
-      env.WC26_KV.get(KV_UPDATED),
+      env.WC26_KV.get(KV_META),
     ]);
+    const updated = resolveUpdated(metaRaw);
     if (!cached) return jsonResponse({ error: "Not yet populated" }, 503);
     return jsonResponse({
       updated,
@@ -302,8 +315,11 @@ async function handleRequest(request, env) {
   }
 
   if (url.pathname === "/api/matches") {
-    const cached  = await env.WC26_KV.get(KV_MATCHES);
-    const updated = await env.WC26_KV.get(KV_UPDATED);
+    const [cached, metaRaw] = await Promise.all([
+      env.WC26_KV.get(KV_MATCHES),
+      env.WC26_KV.get(KV_META),
+    ]);
+    const updated = resolveUpdated(metaRaw);
     if (!cached) return jsonResponse({ error: "Not yet populated" }, 503);
     return jsonResponse({ updated, matches: JSON.parse(cached) });
   }
