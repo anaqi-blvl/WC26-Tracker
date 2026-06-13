@@ -1,0 +1,37 @@
+name: Reminder — revoke Cloudflare analytics token
+
+# One-shot reminder. A read-only Cloudflare Account Analytics API token was
+# embedded in the cloud routine that re-checks KV write volume after the WC26
+# overnight matches (runs 2026-06-14 13:00 UTC). This fires ~30 min later to
+# remind that the token should be revoked once that run has completed.
+#
+# The cron only matches June 14, so it effectively fires once (next match is a
+# year out). Safe to delete this workflow after it has fired. Uses the existing
+# NTFY_TOKEN repo secret — no token handling outside GitHub.
+on:
+  schedule:
+    - cron: "30 13 14 6 *"   # 13:30 UTC on June 14
+  workflow_dispatch:          # allow manual trigger / testing
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish revoke reminder to ntfy hermes topic
+        env:
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+          TOKENS_URL: https://dash.cloudflare.com/22bd9e9a87b333a6dc5a36a9072e24d7/api-tokens
+        run: |
+          if [ -z "$NTFY_TOKEN" ]; then
+            echo "::warning::NTFY_TOKEN secret not set — skipping ntfy notification"
+            exit 0
+          fi
+          BODY="The KV write-curve re-check routine has run. Revoke the read-only Cloudflare Account Analytics API token now (it was embedded in that cloud routine's config)."
+          curl -fsS -X POST "https://ntfy.naqi.ca/hermes" \
+            -H "Authorization: Bearer ${NTFY_TOKEN}" \
+            -H "Title: Revoke the Cloudflare analytics API token" \
+            -H "Priority: high" \
+            -H "Tags: key,warning" \
+            -H "Click: ${TOKENS_URL}" \
+            -H "Actions: view, Open API Tokens, ${TOKENS_URL}" \
+            -d "$BODY"
