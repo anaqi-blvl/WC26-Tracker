@@ -1,0 +1,38 @@
+name: Notify ntfy on PR opened
+
+# Publishes to the self-hosted ntfy "hermes" topic whenever a pull request
+# is opened, so a review/merge/deploy can happen. The NTFY_TOKEN repo secret
+# must be set (Settings → Secrets and variables → Actions). If it's missing
+# the step no-ops rather than failing the check.
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish to ntfy hermes topic
+        # All PR-controlled values are passed via env (never interpolated into
+        # the script body) so a crafted PR title can't inject shell commands.
+        env:
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$NTFY_TOKEN" ]; then
+            echo "::warning::NTFY_TOKEN secret not set — skipping ntfy notification"
+            exit 0
+          fi
+          BODY="$PR_AUTHOR opened \"$PR_TITLE\" (branch: $PR_BRANCH). Review, merge, then deploy locally with: npm run deploy:all"
+          curl -fsS -X POST "https://ntfy.naqi.ca/hermes" \
+            -H "Authorization: Bearer ${NTFY_TOKEN}" \
+            -H "Title: PR ready to merge & deploy — ${REPO}" \
+            -H "Priority: high" \
+            -H "Tags: rocket,eyes" \
+            -H "Click: ${PR_URL}" \
+            -H "Actions: view, Open PR, ${PR_URL}" \
+            -d "$BODY"
