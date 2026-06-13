@@ -504,12 +504,16 @@ footer {
 .toast.ft { border-left-color: var(--dim); }
 .toast.ft .toast-score { color: var(--dim); }
 
-/* ── Form guide dots ──────────────────────────── */
-.form-dots { display: flex; gap: 3px; align-items: center; flex-shrink: 0; margin-left: 6px; }
-.fd { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.fd-W { background: var(--teal); }
-.fd-D { background: var(--amber); }
-.fd-L { background: var(--red); }
+/* ── Form chips ───────────────────────────────── */
+.form-chips { display: flex; gap: 2px; align-items: center; }
+.fc {
+  font-family: var(--display); font-size: 9px; font-weight: 700;
+  width: 15px; height: 15px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.fc-W { background: var(--teal-a);  color: var(--teal); }
+.fc-D { background: var(--amber-a); color: var(--amber); }
+.fc-L { background: var(--red-a);   color: var(--red); }
 
 /* ── Refresh badge ────────────────────────────── */
 .live-badge.refreshable { cursor: pointer; transition: opacity .15s; }
@@ -596,9 +600,8 @@ footer {
   <!-- ── GROUPS ─────────────────────────────── -->
   <section class="view" id="view-groups">
     <div class="legend">
-      <div class="lg"><span class="dot dq"></span>Top 2 — automatic R32</div>
-      <div class="lg"><span class="dot d3"></span>3rd — best 8 of 12 advance</div>
-      <div class="lg"><span class="dot dr"></span>Canada</div>
+      <div class="lg"><span class="dot dq"></span>Top 2 — advance to R32</div>
+      <div class="lg"><span class="dot d3"></span>3rd — best 8 of 12 groups advance</div>
     </div>
     <div class="groups" id="groups-grid">
       <!-- skeleton while loading -->
@@ -826,17 +829,16 @@ function renderGroups() {
       const logoHtml = t.logo
         ? `<img class="tlogo" src="${t.logo}" alt="" loading="lazy">`
         : "";
-      const wdl = t.played > 0 ? `${t.win}–${t.draw}–${t.lose}` : "–";
       const form = getTeamForm(t.name);
       const formHtml = form.length
-        ? `<span class="form-dots">${form.map(r => `<span class="fd fd-${r}" title="${r}"></span>`).join('')}</span>`
-        : '';
+        ? `<span class="form-chips">${form.map(r => `<span class="fc fc-${r}">${r}</span>`).join('')}</span>`
+        : `<span style="color:var(--faint);font-size:12px">–</span>`;
       return `
         <div class="trow ${rowCls} ${isCanada ? "canada" : ""}">
           <div class="pos">${hasPlay ? i+1 : "·"}</div>
-          <div class="tm">${logoHtml}<span class="tname">${t.name}</span>${formHtml}</div>
+          <div class="tm">${logoHtml}<span class="tname">${t.name}</span></div>
           <div class="n">${t.played}</div>
-          <div class="n">${wdl}</div>
+          <div class="n" style="display:flex;justify-content:center">${formHtml}</div>
           <div class="n">${t.gd > 0 ? "+" : ""}${t.gd}</div>
           <div class="pts">${t.pts}</div>
         </div>`;
@@ -856,7 +858,7 @@ function renderGroups() {
         ${resultRows ? `<div class="gresults">${resultRows}</div>` : ""}
         <div class="trow thead">
           <div></div><div>Team</div><div class="n">P</div>
-          <div class="n">W–D–L</div><div class="n">GD</div><div class="pts" style="font-weight:400">Pts</div>
+          <div class="n">Form</div><div class="n">GD</div><div class="pts" style="font-weight:400">Pts</div>
         </div>
         ${tableRows}
       </div>`;
