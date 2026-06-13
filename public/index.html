@@ -101,7 +101,8 @@ nav { display: flex; gap: 0; margin-top: 12px; }
 .t-mob { display: none; }
 
 @media (max-width: 540px) {
-  .hdr-inner { padding: 10px 12px 0; }
+  header { position: fixed; top: 0; left: 0; right: 0; padding-top: env(safe-area-inset-top, 0px); }
+  .hdr-inner { padding: 11px 12px 11px; }
   .hdr-top { gap: 8px; }
   .wordmark { font-size: 19px; gap: 9px; }
   .wc-logo { height: 38px; margin: -2px -6px; }
@@ -113,6 +114,8 @@ nav { display: flex; gap: 0; margin-top: 12px; }
   .tab { padding: 10px 13px; font-size: 13px; letter-spacing: .07em; white-space: nowrap; }
   .t-wide { display: none; }
   .t-mob { display: inline; }
+  body { scrollbar-width: none; -ms-overflow-style: none; }
+  body::-webkit-scrollbar { display: none; }
 }
 
 /* ── Layout ───────────────────────────────── */
@@ -517,7 +520,7 @@ footer {
 
 @media (max-width: 540px) {
   header nav { display: none; }
-  main { padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+  main { padding-top: calc(62px + env(safe-area-inset-top, 0px)); padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
 
   .bottom-nav {
     display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
