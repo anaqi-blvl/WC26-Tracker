@@ -8,11 +8,14 @@
  *   GET /                → serves the frontend HTML from KV (key: "html")
  *   GET /api/refresh     → manual refresh (protected by REFRESH_SECRET header)
  *
- * Cron: fires every 2 min during match hours (wrangler.toml), but only hits
- * ESPN when needed (adaptive — see shouldFetch in runUpdate):
+ * Cron: fires every minute during match hours (wrangler.toml), but only hits
+ * ESPN when needed (adaptive — see runUpdate):
  *   - a match is live, or kicks off within 15 min  → fetch scoreboard
  *   - otherwise                                    → fetch at most every 30 min
  *   - standings refetched only when a match just ended (or on the slow tick)
+ * ESPN has no published rate limit and edge-caches ~1-9s, so polling faster
+ * than ~10s gains nothing; ~1/min while live is plenty and keeps volume low.
+ * Only this Worker calls ESPN — browsers hit the KV-cached /api/* endpoints.
  */
 
 const ESPN_STANDINGS  = "https://site.api.espn.com/apis/v2/sports/soccer/fifa.world/standings";

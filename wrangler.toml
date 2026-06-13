@@ -16,9 +16,9 @@ id = "88f7cafdd6744bbfb7f152403800268d"
 preview_id = "4f41357b530b4123a6e23033a8242a76"
 
 # ── Cron triggers ─────────────────────────────────────────────────────────────
-# Fires every 2 min during match hours, but the worker is adaptive: it only
+# Fires every minute during match hours, but the worker is adaptive: it only
 # hits ESPN when a match is live / about to kick off, otherwise every 30 min.
-# Outside match hours a slow heartbeat keeps the cache from going stale.
+# Outside match hours a slow heartbeat (every 2h) keeps the cache from going stale.
 [triggers]
 crons = [
   "* 14-23,0-4 * * *",
