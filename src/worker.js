@@ -264,7 +264,10 @@ function jsonResponse(data, status = 200) {
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
-      "Cache-Control": "public, max-age=60",
+      // Must stay under the frontend's live poll interval (30s) — otherwise
+      // every other live poll is served stale from the browser cache and
+      // scores/goal toasts lag. 20s still gives some shared-cache dedup.
+      "Cache-Control": "public, max-age=20",
     },
   });
 }
