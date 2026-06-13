@@ -200,3 +200,5 @@ The Worker is adaptive — it only hits ESPN when something is actually happenin
 | `REFRESH_SECRET` | `.dev.vars` / Wrangler secret | Protects `/api/refresh` |
 
 No ESPN API key is required — the data endpoints used are public.
+
+<!-- ntfy workflow smoke test — safe to delete this branch/PR -->
