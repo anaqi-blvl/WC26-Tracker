@@ -2,25 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>World Cup 26 — Live Tracker</title>
 <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
 <link rel="icon" type="image/png" href="/icon.png">
 <meta name="apple-mobile-web-app-title" content="WC26">
-<meta name="theme-color" content="#0B1410">
+<meta name="theme-color" content="#0A0A0A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --pitch:    #0B1410;
-  --surf:     #121E18;
-  --surf2:    #18271F;
-  --line:     #23362B;
-  --line2:    #2E4A3A;
-  --text:     #F2F7F3;
-  --dim:      #A8C5B2;
-  --faint:    #8BA395;
+  --pitch:    #0A0A0A;
+  --surf:     #141414;
+  --surf2:    #1C1C1C;
+  --line:     #272727;
+  --line2:    #383838;
+  --text:     #F5F5F5;
+  --dim:      #ABABAB;
+  --faint:    #787878;
   --red:      #F25A45;
   --red-a:    rgba(242,90,69,.12);
   --teal:     #4FC79A;
@@ -54,7 +54,7 @@ body::-webkit-scrollbar { display: none; }
 /* ── Header ───────────────────────────────── */
 header {
   position: sticky; top: 0; z-index: 40;
-  background: rgba(11,20,16,.94);
+  background: rgba(10,10,10,.94);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--line);
 }
@@ -531,7 +531,7 @@ footer {
 
   .bottom-nav {
     display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-    background: rgba(11,20,16,.97); backdrop-filter: blur(20px);
+    background: rgba(10,10,10,.97); backdrop-filter: blur(20px);
     border-top: 1px solid var(--line);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -1440,7 +1440,7 @@ function burstConfetti() {
   document.body.appendChild(canvas);
   const ctx = canvas.getContext('2d');
 
-  const COLORS = ['#4FC79A','#E3B355','#F25A45','#F2F7F3','#ffffff','#FFD700','#4FC79A','#E3B355'];
+  const COLORS = ['#4FC79A','#E3B355','#F25A45','#F5F5F5','#ffffff','#FFD700','#4FC79A','#E3B355'];
   const W = canvas.width, H = canvas.height;
 
   // 4 burst origins spread across top third of the screen
