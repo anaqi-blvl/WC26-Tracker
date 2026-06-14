@@ -528,7 +528,9 @@ footer {
 
 @media (max-width: 540px) {
   header nav { display: none; }
-  main { padding-top: calc(62px + env(safe-area-inset-top, 0px)); padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+  /* 62px clears the fixed header; +16px makes the gap below the bar match the
+     16px left/right padding from the base `main` rule. */
+  main { padding-top: calc(62px + 16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
 
   .bottom-nav {
     display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
