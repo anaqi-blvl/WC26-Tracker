@@ -39,7 +39,11 @@ body {
   font-family: var(--body);
   background: var(--pitch);
   color: var(--text);
+  /* dvh tracks the visible viewport; plain 100vh = the *large* viewport on
+     mobile, so it stays tall behind the address bar and creates a phantom
+     scroll on short pages (e.g. Live with no matches). vh kept as fallback. */
   min-height: 100vh;
+  min-height: 100dvh;
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
