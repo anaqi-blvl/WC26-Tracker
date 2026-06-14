@@ -33,7 +33,6 @@ const SOON_MS        = 15 * 60 * 1000;  // refresh window before kickoff
 const POST_MATCH_MS  = 15 * 60 * 1000;  // refresh window after estimated end
 const EST_MATCH_MS   = 120 * 60 * 1000; // estimated regulation match duration
 const IDLE_MS        = 30 * 60 * 1000;  // max staleness when nothing is on
-const LIVE_CLOCK_MS  = 3 * 60 * 1000;   // refresh the frozen live clock in KV at most this often
 
 // ─────────────────────────────────────────────
 // FETCH helpers
@@ -229,20 +228,19 @@ async function runUpdate(env, { force = false } = {}) {
 
     // Dedup the matches write. The live clock (`elapsed`, e.g. "23'") and
     // `statusLong` change on almost every ESPN poll, so comparing the full
-    // payload would still write KV every minute during a match. Compare only
-    // *material* fields (scores, status, teams) and refresh the otherwise
-    // frozen clock at most once per LIVE_CLOCK_MS so the minute can't drift far.
+    // payload would write KV every minute during a match. Compare only
+    // *material* fields (scores, status, teams) and write solely on those
+    // changes — the browser advances the displayed minute itself, anchored to
+    // `matchesUpdated` (no periodic clock write needed). Half boundaries are
+    // status changes, so the clock re-anchors at each one automatically.
     if (matchesJson) {
       const material = list =>
         JSON.stringify(list.map(m => ({ ...m, elapsed: null, statusLong: "" })));
-      const materialChanged = material(matches) !== material(cached);
-      const anyLiveNow = matches.some(m => LIVE_STATUSES.includes(m.status));
-      const clockTick =
-        anyLiveNow && (!meta.lastMatchesWrite || now - meta.lastMatchesWrite >= LIVE_CLOCK_MS);
-      if (materialChanged || clockTick) {
+      if (material(matches) !== material(cached)) {
         await env.WC26_KV.put(KV_MATCHES, matchesJson);
-        meta.lastMatchesWrite = now;
-        meta.updated = new Date(now).toISOString();
+        // Anchor for the client-side clock: when this elapsed was captured.
+        meta.matchesUpdated = new Date(now).toISOString();
+        meta.updated = meta.matchesUpdated;
         metaDirty = true;
       }
     }
@@ -353,7 +351,11 @@ async function handleRequest(request, env) {
     ]);
     const updated = resolveUpdated(metaRaw);
     if (!cached) return jsonResponse({ error: "Not yet populated" }, 503);
-    return jsonResponse({ updated, matches: JSON.parse(cached) });
+    // `asOf` = when this matches payload (and its `elapsed` values) was
+    // captured, so the browser can advance the live clock from there.
+    const meta = metaRaw ? JSON.parse(metaRaw) : {};
+    const asOf = meta.matchesUpdated ?? updated;
+    return jsonResponse({ updated, asOf, matches: JSON.parse(cached) });
   }
 
   if (url.pathname === "/api/refresh") {

@@ -702,6 +702,7 @@ let standingsData   = null;  // { A: [...], B: [...], ... }
 let matchesData     = null;  // [{ home, away, status, elapsed, goals... }]
 let qualifiedData   = null;  // { slots: { "1A": {name,logo}, ... }, thirds: [...] }
 let lastUpdated     = null;
+let matchesAsOf     = null;      // when the matches payload's `elapsed` was captured
 let bracketAssigned = new Map(); // bracket match number -> ESPN event
 let prevScores      = new Map(); // match id -> { home, away } before last fetch
 let prevStatuses    = new Map(); // match id -> status before last fetch
@@ -737,6 +738,8 @@ async function fetchData({ silent = false } = {}) {
         detectKickoffs(j.matches);
       }
       matchesData = j.matches;
+      matchesAsOf = j.asOf ?? j.updated ?? null;
+      advanceLiveClock(matchesData, matchesAsOf);
     }
 
     renderMatchList();
@@ -1211,6 +1214,26 @@ function renderBracket() {
 /* ══════════════════════════════════════════════
    RENDER — live scoreboard
 ══════════════════════════════════════════════ */
+// The worker no longer rewrites KV every minute just to tick the live clock —
+// it writes only on real events (goal, half/status change) and stamps the
+// payload with `asOf`. We advance the displayed minute here from that anchor so
+// the clock tracks real time at zero KV cost; it re-anchors on the next event.
+// HT/P show their own label and FT/NS don't tick, so only in-play states count.
+const LIVE_PLAY_STATUSES = new Set(['1H', 'ET', 'BT']);
+function advanceLiveClock(matches, asOf) {
+  const anchor = asOf ? Date.parse(asOf) : NaN;
+  if (isNaN(anchor)) return;
+  const extra = Math.floor((Date.now() - anchor) / 60000);
+  if (extra <= 0) return;
+  for (const m of matches) {
+    if (!LIVE_PLAY_STATUSES.has(m.status)) continue;
+    const base = parseInt((m.elapsed || '').match(/(\d+)/)?.[1] ?? '', 10);
+    if (isNaN(base)) continue;
+    const cap = (m.status === 'ET' || m.status === 'BT') ? 130 : 100;
+    m.elapsed = `${Math.min(base + extra, cap)}'`;
+  }
+}
+
 function matchProgressPct(elapsed, status) {
   if (status === 'HT') return 50;
   if (status === 'P')  return 100;
