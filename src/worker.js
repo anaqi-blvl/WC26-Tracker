@@ -33,6 +33,7 @@ const SOON_MS        = 15 * 60 * 1000;  // refresh window before kickoff
 const POST_MATCH_MS  = 15 * 60 * 1000;  // refresh window after estimated end
 const EST_MATCH_MS   = 120 * 60 * 1000; // estimated regulation match duration
 const IDLE_MS        = 30 * 60 * 1000;  // max staleness when nothing is on
+const LIVE_CLOCK_MS  = 3 * 60 * 1000;   // refresh the frozen live clock in KV at most this often
 
 // ─────────────────────────────────────────────
 // FETCH helpers
@@ -222,10 +223,28 @@ async function runUpdate(env, { force = false } = {}) {
   try {
     const matches = await fetchMatches();
     const matchesJson = matches.length > 0 ? JSON.stringify(matches) : null;
-    // Only write when the payload actually changed — saves KV writes during
-    // quiet "soon"/post-match windows where scores haven't moved.
-    if (matchesJson && matchesJson !== cachedRaw) {
-      await env.WC26_KV.put(KV_MATCHES, matchesJson);
+    // A stale/idle tick must persist meta to advance lastFetch and re-arm the
+    // 30-min throttle; otherwise we'd refetch (and rewrite) every minute.
+    let metaDirty = force || stale;
+
+    // Dedup the matches write. The live clock (`elapsed`, e.g. "23'") and
+    // `statusLong` change on almost every ESPN poll, so comparing the full
+    // payload would still write KV every minute during a match. Compare only
+    // *material* fields (scores, status, teams) and refresh the otherwise
+    // frozen clock at most once per LIVE_CLOCK_MS so the minute can't drift far.
+    if (matchesJson) {
+      const material = list =>
+        JSON.stringify(list.map(m => ({ ...m, elapsed: null, statusLong: "" })));
+      const materialChanged = material(matches) !== material(cached);
+      const anyLiveNow = matches.some(m => LIVE_STATUSES.includes(m.status));
+      const clockTick =
+        anyLiveNow && (!meta.lastMatchesWrite || now - meta.lastMatchesWrite >= LIVE_CLOCK_MS);
+      if (materialChanged || clockTick) {
+        await env.WC26_KV.put(KV_MATCHES, matchesJson);
+        meta.lastMatchesWrite = now;
+        meta.updated = new Date(now).toISOString();
+        metaDirty = true;
+      }
     }
 
     // Did any match just finish? → standings (and qualification) changed.
@@ -240,6 +259,7 @@ async function runUpdate(env, { force = false } = {}) {
     // the update even if it didn't land on the very first post-match cron run.
     if (justFinished) {
       meta.standingsRefreshUntil = now + 15 * 60 * 1000;
+      metaDirty = true;
     }
 
     if (force || justFinished || inPostMatchWindow || stale || !haveStandings) {
@@ -252,14 +272,20 @@ async function runUpdate(env, { force = false } = {}) {
         if (standingsJson !== haveStandings) {
           await env.WC26_KV.put(KV_STANDINGS, standingsJson);
           await env.WC26_KV.put(KV_QUALIFIED, JSON.stringify(computeQualified(standings)));
+          meta.updated = new Date(now).toISOString();
+          metaDirty = true;
         }
       }
     }
 
-    meta.lastFetch = now;
-    meta.updated = new Date(now).toISOString();
-    await env.WC26_KV.put(KV_META, JSON.stringify(meta));
-    console.log(`[WC26] Updated — ${matches.length} matches (live=${anyLive}, finished=${justFinished}, postMatch=${inPostMatchWindow})`);
+    // Persist meta only when something actually changed (or the idle throttle
+    // advanced). Writing it every tick was ~60 KV writes/hr during live windows
+    // all by itself — the single biggest contributor to the daily write cap.
+    if (metaDirty) {
+      meta.lastFetch = now;
+      await env.WC26_KV.put(KV_META, JSON.stringify(meta));
+    }
+    console.log(`[WC26] Updated — ${matches.length} matches (live=${anyLive}, finished=${justFinished}, postMatch=${inPostMatchWindow}, wroteMeta=${metaDirty})`);
   } catch (err) {
     console.error(`[WC26] Update failed: ${err.message}`);
   }
