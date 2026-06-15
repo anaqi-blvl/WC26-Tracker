@@ -7,7 +7,16 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
 <link rel="icon" type="image/png" href="/icon.png">
 <meta name="apple-mobile-web-app-title" content="WC26">
-<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- Transparent status bar: the themed header shows through behind the
+     Dynamic Island, so the top updates live when the theme is toggled
+     (iOS won't repaint a theme-color status bar at runtime). -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- Status bar follows the system in Auto; the head script appends an
+     overriding theme-color meta when a theme is forced (last match wins). -->
+<meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#0A0A0A">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F2F5">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -743,8 +752,16 @@ footer {
     var root = document.documentElement;
     root.setAttribute("data-theme", r);
     root.setAttribute("data-theme-pref", p);
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", r === "light" ? "#F2F2F5" : "#0A0A0A");
+    // Auto: drop any override so the media metas track the OS (and iOS picks
+    // the right status-bar text contrast). Forced: append a non-media meta —
+    // when several theme-color metas match, the last one in the document wins.
+    var ov = document.getElementById("tc-override");
+    if (p === "auto") {
+      if (ov) ov.remove();
+    } else {
+      if (!ov) { ov = document.createElement("meta"); ov.id = "tc-override"; ov.name = "theme-color"; document.head.appendChild(ov); }
+      ov.setAttribute("content", r === "light" ? "#F2F2F5" : "#0A0A0A");
+    }
   }
   apply(localStorage.getItem(KEY) || "auto");
   window.__setTheme = function (p) { localStorage.setItem(KEY, p); apply(p); };
