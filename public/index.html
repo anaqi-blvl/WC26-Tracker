@@ -27,13 +27,56 @@
   --teal-a:   rgba(79,199,154,.10);
   --amber:    #E3B355;
   --amber-a:  rgba(227,179,85,.11);
+  /* Liquid-glass surfaces (themed) */
+  --glass-header:   rgba(10,10,10,.40);
+  --glass-nav:      rgba(20,20,22,.24);
+  --glass-sheet:    rgba(36,36,38,.72);
+  --glass-circle:   rgba(28,28,30,.6);
+  --glass-brd:      rgba(255,255,255,.12);
+  --glass-brd-soft: rgba(255,255,255,.08);
+  --glass-hl:       rgba(255,255,255,.18);
+  --lens:           rgba(255,255,255,.10);
+  --press:          rgba(255,255,255,.10);
+  --scrim:          rgba(0,0,0,.5);
   --display:  'Barlow Condensed', sans-serif;
   --body:     'Noto Sans', 'Helvetica Neue', sans-serif;
   --mono:     'JetBrains Mono', monospace;
-  --r:        8px;
+  --r:        12px;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+/* ── Light theme ──────────────────────────────
+   Applied when <html data-theme="light"> (set by the head script, which
+   resolves the "auto" preference against the OS setting). */
+:root[data-theme="light"] {
+  --pitch:    #F2F2F5;
+  --surf:     #FFFFFF;
+  --surf2:    #ECECEF;
+  --line:     #E4E4E8;
+  --line2:    #D3D3D8;
+  --text:     #16181C;
+  --dim:      #565A62;
+  --faint:    #898E96;
+  --red:      #DC4530;
+  --red-a:    rgba(220,69,48,.10);
+  --teal:     #1B9E73;
+  --teal-a:   rgba(27,158,115,.10);
+  --amber:    #B5821F;
+  --amber-a:  rgba(181,130,31,.12);
+  --glass-header:   rgba(255,255,255,.46);
+  --glass-nav:      rgba(255,255,255,.40);
+  --glass-sheet:    rgba(255,255,255,.72);
+  --glass-circle:   rgba(255,255,255,.7);
+  --glass-brd:      rgba(0,0,0,.10);
+  --glass-brd-soft: rgba(0,0,0,.06);
+  --glass-hl:       rgba(255,255,255,.7);
+  --lens:           rgba(0,0,0,.06);
+  --press:          rgba(0,0,0,.06);
+  --scrim:          rgba(0,0,0,.35);
+  color-scheme: light;
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; overscroll-behavior-y: contain; }
 
 body {
   font-family: var(--body);
@@ -50,6 +93,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  overscroll-behavior-y: contain;
+}
+/* Native-app touch behaviour: no long-press callout/selection on chrome */
+.tab, .mrow, .bmatch, .gcard, .msec-head, .bottom-nav, header, button, summary, .sheet {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 body::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; -ms-overflow-style: none; }
@@ -58,15 +108,28 @@ body::-webkit-scrollbar { display: none; }
 /* ── Header ───────────────────────────────── */
 header {
   position: sticky; top: 0; z-index: 40;
-  background: rgba(10,10,10,.94);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--line);
+  background: var(--glass-header);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  border-bottom: 1px solid var(--glass-brd-soft);
 }
 .hdr-inner {
   max-width: 1120px; margin: 0 auto;
   padding: 14px 16px 0;
 }
 .hdr-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hdr-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.theme-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex-shrink: 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--faint); border-radius: 50%;
+  transition: color .15s, background .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.theme-toggle svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+@media (hover:hover) { .theme-toggle:hover { color: var(--text); } }
+.theme-toggle:active { background: var(--press); }
 .wordmark {
   display: flex; align-items: center; gap: 11px;
   font-family: var(--display); font-weight: 700; font-size: 22px;
@@ -104,7 +167,7 @@ nav { display: flex; gap: 0; margin-top: 12px; }
   color: var(--dim); padding: 10px 18px; cursor: pointer;
   border-bottom: 2px solid transparent; transition: color .15s;
 }
-.tab:hover { color: var(--text); }
+@media (hover:hover) { .tab:hover { color: var(--text); } }
 .tab.active { color: var(--text); border-bottom-color: var(--red); }
 .tab:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; border-radius: 4px; }
 .t-mob { display: none; }
@@ -240,10 +303,11 @@ details.msec:not([open]) .chev { transform: rotate(-90deg); }
   border-radius: var(--r); padding: 8px 14px 10px;
   display: grid; grid-template-columns: 1fr auto 1fr;
   gap: 4px 10px; align-items: center;
-  transition: border-color .15s, background .15s;
+  transition: border-color .15s, background .15s, transform .12s ease;
   cursor: pointer;
 }
-.mrow:hover { background: var(--surf2); }
+@media (hover:hover) { .mrow:hover { background: var(--surf2); } }
+.mrow:active { transform: scale(.985); }
 .mrow.live { border-color: var(--red); background: linear-gradient(90deg, var(--red-a), var(--surf) 35%); }
 .mrow.today { border-color: var(--amber); background: linear-gradient(90deg, var(--amber-a), var(--surf) 35%); }
 .mrow.today .mmeta { color: var(--amber); }
@@ -285,32 +349,100 @@ details.msec:not([open]) .chev { transform: rotate(-90deg); }
 
 /* watch-live dropdown (live rows only) */
 .mrow.live { grid-template-columns: 1fr auto 1fr auto; }
-.mwatch { position: relative; grid-column: 4; grid-row: 2; }
-.mwatch summary {
-  list-style: none; cursor: pointer; user-select: none;
-  display: flex; align-items: center; gap: 6px;
-  background: var(--red); color: #fff;
+.mwatch {
+  grid-column: 4; grid-row: 2;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--red); color: #fff; border: none;
   font-family: var(--display); font-weight: 600; font-size: 13px;
   letter-spacing: .07em; text-transform: uppercase;
-  padding: 7px 12px; border-radius: 6px; white-space: nowrap;
+  padding: 7px 12px; border-radius: 8px; white-space: nowrap;
+  cursor: pointer; transition: transform .12s ease, filter .12s ease;
 }
-.mwatch summary::-webkit-details-marker { display: none; }
-.mwatch summary:hover { filter: brightness(1.12); }
-.mwatch summary::after { content: "▾"; font-size: 11px; }
-.mwatch[open] summary::after { content: "▴"; }
-.mwatch-menu {
-  position: absolute; right: 0; top: calc(100% + 6px); z-index: 50;
-  background: var(--surf2); border: 1px solid var(--line2);
-  border-radius: var(--r); overflow: hidden; min-width: 160px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.55);
+@media (hover:hover) { .mwatch:hover { filter: brightness(1.12); } }
+.mwatch:active { transform: scale(.93); }
+
+/* ── Action sheet (iOS-style) ─────────────── */
+.sheet-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
+.sheet-overlay[hidden] { display: none; }
+.sheet-backdrop { position: absolute; inset: 0; background: var(--scrim); opacity: 0; transition: opacity .3s ease; }
+.sheet-overlay.open .sheet-backdrop { opacity: 1; }
+.sheet {
+  position: relative; width: 100%; max-width: 460px;
+  margin: 0 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 0 0 0;
+  transform: translateY(115%); transition: transform .38s cubic-bezier(.32,.72,0,1);
 }
-.mwatch-menu a {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; color: var(--text); text-decoration: none;
-  font-size: 14px;
+.sheet-overlay.open .sheet { transform: translateY(0); }
+.sheet-group, .sheet-cancel {
+  background: var(--glass-sheet);
+  -webkit-backdrop-filter: blur(36px) saturate(180%);
+  backdrop-filter: blur(36px) saturate(180%);
+  border: 1px solid var(--glass-brd);
+  border-radius: 18px; overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5), inset 0 1px 0 var(--glass-hl);
 }
-.mwatch-menu a:hover { background: var(--surf); }
-.mwatch-menu img { width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0; }
+.sheet-title {
+  text-align: center; font-family: var(--mono); font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+  padding: 14px 12px 12px; border-bottom: 1px solid var(--glass-brd-soft);
+}
+.sheet-group a,
+.sheet-group button {
+  display: flex; align-items: center; gap: 13px; width: 100%;
+  padding: 16px 20px; color: var(--text); text-decoration: none; font-size: 16px;
+  background: none; border: none; font-family: var(--body); text-align: left; cursor: pointer;
+}
+.sheet-group a + a,
+.sheet-group button + button { border-top: 1px solid var(--glass-brd-soft); }
+.sheet-group a:active,
+.sheet-group button:active { background: var(--press); }
+.sheet-group img { width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0; }
+/* Theme picker rows */
+.ts-ic { display: flex; width: 24px; flex-shrink: 0; color: var(--dim); }
+.ts-ic svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ts-label { flex: 1; min-width: 0; }
+.ts-label em { display: block; font-style: normal; font-size: 12px; color: var(--faint); margin-top: 1px; }
+.sheet-group button .sheet-check { margin-left: auto; color: var(--teal); font-weight: 700; font-size: 17px; opacity: 0; }
+.sheet-group button.sel .sheet-check { opacity: 1; }
+.sheet-group button.sel .ts-ic { color: var(--teal); }
+.sheet-cancel {
+  display: block; width: 100%; margin-top: 8px; padding: 16px;
+  color: var(--teal); font-family: var(--body); font-size: 17px; font-weight: 600;
+  text-align: center; cursor: pointer;
+}
+.sheet-cancel:active { background: var(--press); }
+:root[data-theme="light"] .sheet-group,
+:root[data-theme="light"] .sheet-cancel {
+  border-color: rgba(0,0,0,.06);
+  box-shadow: 0 6px 22px rgba(0,0,0,.10), inset 0 1px 0 rgba(255,255,255,.85);
+}
+
+/* ── Pull to refresh ──────────────────────── */
+.ptr {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+  display: flex; justify-content: center; pointer-events: none;
+}
+.ptr-circle {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--glass-circle);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-brd);
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  opacity: 0; will-change: transform, opacity;
+  display: flex; align-items: center; justify-content: center;
+}
+:root[data-theme="light"] .ptr-circle {
+  border-color: rgba(0,0,0,.06);
+  box-shadow: 0 3px 10px rgba(0,0,0,.10);
+}
+.ptr-circle::before {
+  content: ""; width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid var(--faint); border-top-color: var(--teal);
+}
+.ptr.settling .ptr-circle { transition: transform .3s ease, opacity .3s ease; }
+.ptr.spin .ptr-circle::before { animation: ptr-spin .7s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
 
 /* ── Bracket ──────────────────────────────── */
 .bracket-scroll {
@@ -347,7 +479,8 @@ details.msec:not([open]) .chev { transform: rotate(-90deg); }
   border-radius: var(--r); overflow: hidden;
   transition: transform .15s, border-color .15s;
 }
-.bmatch:hover { transform: translateY(-1px); border-color: var(--line2); }
+@media (hover:hover) { .bmatch:hover { transform: translateY(-1px); border-color: var(--line2); } }
+.bmatch:active { transform: scale(.985); }
 .bmatch.can-m  { border-left-color: var(--red);   background: linear-gradient(90deg, var(--red-a), var(--surf) 45%); }
 .bmatch.final-m{ border: 1px solid var(--amber); border-left-width: 3px; background: linear-gradient(90deg, var(--amber-a), var(--surf) 50%); }
 .b3rd-label {
@@ -525,7 +658,8 @@ footer {
 
 /* ── Refresh badge ────────────────────────────── */
 .live-badge.refreshable { cursor: pointer; transition: opacity .15s; }
-.live-badge.refreshable:hover { opacity: .75; }
+@media (hover:hover) { .live-badge.refreshable:hover { opacity: .75; } }
+.live-badge.refreshable:active { opacity: .55; }
 
 /* ── Bottom nav (mobile only) ─────────────────── */
 .bottom-nav { display: none; }
@@ -534,26 +668,62 @@ footer {
   header nav { display: none; }
   /* 62px clears the fixed header; +16px makes the gap below the bar match the
      16px left/right padding from the base `main` rule. */
-  main { padding-top: calc(62px + 16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+  main { padding-top: calc(62px + 16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
 
+  /* Floating "liquid glass" capsule — translucent, blurred, with a specular
+     top edge and a soft shadow so it lifts off the content beneath it. */
   .bottom-nav {
-    display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-    background: rgba(10,10,10,.97); backdrop-filter: blur(20px);
-    border-top: 1px solid var(--line);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    display: flex; gap: 4px; position: fixed; z-index: 50;
+    left: 14px; right: 14px; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding: 6px;
+    border-radius: 34px;
+    background: var(--glass-nav);
+    -webkit-backdrop-filter: blur(22px) saturate(190%);
+    backdrop-filter: blur(22px) saturate(190%);
+    border: 1px solid var(--glass-brd);
+    box-shadow:
+      0 12px 34px rgba(0,0,0,.42),
+      0 2px 8px rgba(0,0,0,.30),
+      inset 0 1px 0 var(--glass-hl),
+      inset 0 -1px 1px rgba(0,0,0,.28);
+  }
+  /* The sliding glass "lens" that animates under the active tab. */
+  .bottom-nav .bn-indicator {
+    position: absolute; top: 6px; bottom: 6px; left: 0; width: 0;
+    border-radius: 28px; opacity: 0; pointer-events: none; z-index: 0;
+    background: var(--lens);
+    box-shadow: inset 0 1px 0 var(--glass-hl), 0 1px 3px rgba(0,0,0,.28);
+    transition: transform .42s cubic-bezier(.34,1.4,.5,1), width .42s cubic-bezier(.34,1.4,.5,1), opacity .25s ease;
+  }
+  .bottom-nav .bn-indicator.live { background: var(--red-a); box-shadow: inset 0 1px 0 var(--glass-hl), 0 1px 3px rgba(0,0,0,.28); }
+  /* Authentic light-mode glass: sell it with translucency, blur, a hairline
+     border and a bright top highlight — not dark drop shadows. */
+  :root[data-theme="light"] .bottom-nav {
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    backdrop-filter: blur(22px) saturate(170%);
+    border-color: rgba(0,0,0,.06);
+    box-shadow:
+      0 3px 12px rgba(0,0,0,.05),
+      inset 0 1px 0 rgba(255,255,255,.9);
+  }
+  :root[data-theme="light"] .bottom-nav .bn-indicator,
+  :root[data-theme="light"] .bottom-nav .bn-indicator.live {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
   }
   .bottom-nav .tab {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4px; padding: 10px 4px;
+    position: relative; z-index: 1; flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; padding: 9px 4px;
     font-family: var(--display); font-size: 10px; font-weight: 400;
     letter-spacing: .08em; text-transform: uppercase;
     color: var(--faint); background: none; border: none; border-bottom: none;
-    cursor: pointer; transition: color .15s;
+    border-radius: 28px;
+    cursor: pointer; transition: color .25s ease, transform .15s ease;
     -webkit-tap-highlight-color: transparent;
   }
   .bottom-nav .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; flex-shrink: 0; }
-  .bottom-nav .tab:active { color: var(--text); }
-  .bottom-nav .tab.active { color: var(--teal); }
+  .bottom-nav .tab:active { transform: scale(.93); }
+  .bottom-nav .tab.active { color: var(--red); }
   .bottom-nav .tab.live-tab,
   .bottom-nav .tab.live-tab.active { color: var(--red); }
   .bottom-nav .lt-inner { display: flex; align-items: center; gap: 3px; }
@@ -561,6 +731,30 @@ footer {
   .bottom-nav .lt-count { font-size: 10px; color: var(--red); letter-spacing: 0; }
 }
 </style>
+<script>
+/* Apply the saved theme before first paint to avoid a flash. "auto" follows
+   the OS; "light"/"dark" force a choice. Exposes window.__setTheme for the UI. */
+(function () {
+  var KEY = "wc26-theme";
+  var mq = matchMedia("(prefers-color-scheme: light)");
+  function resolve(p) { return p === "auto" ? (mq.matches ? "light" : "dark") : p; }
+  function apply(p) {
+    var r = resolve(p);
+    var root = document.documentElement;
+    root.setAttribute("data-theme", r);
+    root.setAttribute("data-theme-pref", p);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", r === "light" ? "#F2F2F5" : "#0A0A0A");
+  }
+  apply(localStorage.getItem(KEY) || "auto");
+  window.__setTheme = function (p) { localStorage.setItem(KEY, p); apply(p); };
+  window.__themePref = function () { return localStorage.getItem(KEY) || "auto"; };
+  window.__themeResolved = function () { return resolve(localStorage.getItem(KEY) || "auto"); };
+  mq.addEventListener("change", function () {
+    if ((localStorage.getItem(KEY) || "auto") === "auto") apply("auto");
+  });
+})();
+</script>
 </head>
 <body>
 
@@ -571,9 +765,12 @@ footer {
         <img class="wc-logo" src="https://a.espncdn.com/i/leaguelogos/soccer/500-dark/4.png" alt="FIFA World Cup 26">
         <span>World Cup <em>26</em><span class="wm-sub"> — Tracker</span></span>
       </div>
-      <div class="live-badge" id="live-badge">
-        <span class="pulse"></span>
-        <span id="live-text">Loading…</span>
+      <div class="hdr-right">
+        <div class="live-badge" id="live-badge">
+          <span class="pulse"></span>
+          <span id="live-text">Loading…</span>
+        </div>
+        <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Theme"></button>
       </div>
     </div>
     <nav role="tablist">
@@ -651,6 +848,24 @@ footer {
 </main>
 
 <footer id="footer">WC26 Tracker · Jun 11 – Jul 19, 2026</footer>
+
+<div class="ptr" id="ptr" aria-hidden="true"><div class="ptr-circle"></div></div>
+
+<div class="sheet-overlay" id="watch-sheet" role="dialog" aria-label="Watch live" hidden>
+  <div class="sheet-backdrop"></div>
+  <div class="sheet">
+    <div class="sheet-group"></div>
+    <button type="button" class="sheet-cancel">Cancel</button>
+  </div>
+</div>
+
+<div class="sheet-overlay" id="theme-sheet" role="dialog" aria-label="Appearance" hidden>
+  <div class="sheet-backdrop"></div>
+  <div class="sheet">
+    <div class="sheet-group"></div>
+    <button type="button" class="sheet-cancel">Cancel</button>
+  </div>
+</div>
 
 <script>
 /* ══════════════════════════════════════════════
@@ -945,14 +1160,7 @@ const WATCH_LINKS = [
 ];
 
 function watchDropdown() {
-  const items = WATCH_LINKS.map(l =>
-    `<a href="${l.web}" target="_blank" rel="noopener"><img src="${l.icon}" alt="">${l.name}</a>`
-  ).join("");
-  return `
-    <details class="mwatch">
-      <summary>Watch</summary>
-      <div class="mwatch-menu">${items}</div>
-    </details>`;
+  return `<button type="button" class="mwatch" aria-haspopup="dialog">Watch</button>`;
 }
 
 function matchRow(m) {
@@ -1468,6 +1676,7 @@ function syncLiveTab() {
       activateTab('matches');
     }
   }
+  moveBottomNavIndicator();
 }
 
 /* ══════════════════════════════════════════════
@@ -1702,6 +1911,23 @@ document.addEventListener("visibilitychange", () => {
 /* ══════════════════════════════════════════════
    TABS
 ══════════════════════════════════════════════ */
+// Slides the frosted-glass lens in the mobile bottom nav under the active tab.
+function moveBottomNavIndicator() {
+  const nav = document.querySelector(".bottom-nav");
+  if (!nav) return;
+  const ind = nav.querySelector(".bn-indicator");
+  const active = nav.querySelector(".tab.active");
+  if (!ind) return;
+  if (!active || active.offsetParent === null) { ind.style.opacity = "0"; return; }
+  const bl = parseFloat(getComputedStyle(nav).borderLeftWidth) || 0;
+  const navRect = nav.getBoundingClientRect();
+  const r = active.getBoundingClientRect();
+  ind.style.width = r.width + "px";
+  ind.style.transform = `translateX(${r.left - navRect.left - bl}px)`;
+  ind.style.opacity = "1";
+  ind.classList.toggle("live", active.classList.contains("live-tab"));
+}
+
 function activateTab(viewName) {
   document.querySelectorAll(".tab").forEach(b => {
     const active = b.dataset.view === viewName;
@@ -1710,6 +1936,7 @@ function activateTab(viewName) {
   });
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   document.getElementById("view-" + viewName).classList.add("active");
+  moveBottomNavIndicator();
   if (viewName === "bracket") requestAnimationFrame(() => drawBracketConnectors());
 }
 
@@ -1717,6 +1944,9 @@ document.addEventListener("click", e => {
   const btn = e.target.closest(".tab[data-view]");
   if (btn) activateTab(btn.dataset.view);
 });
+
+window.addEventListener("resize", moveBottomNavIndicator);
+window.addEventListener("load", () => requestAnimationFrame(moveBottomNavIndicator));
 
 function navId(s) {
   return (s || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -1732,7 +1962,7 @@ function findGroup(m) {
 }
 
 document.getElementById("match-list").addEventListener("click", e => {
-  if (e.target.closest(".mwatch")) return;
+  if (e.target.closest(".mwatch")) return;   // sheet opens via the global handler below
   const row = e.target.closest(".mrow[data-nav]");
   if (!row) return;
   activateTab(row.dataset.nav);
@@ -1783,11 +2013,44 @@ document.getElementById("match-list").addEventListener("click", e => {
   }
 });
 
-// close any open Watch menu when clicking elsewhere
-document.addEventListener?.("click", e => {
-  document.querySelectorAll(".mwatch[open]").forEach(d => {
-    if (!d.contains(e.target)) d.removeAttribute("open");
-  });
+// ── Bottom sheets (generic open/close) ──────────
+function openSheet(el) {
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add("open"));
+}
+function closeSheet(el) {
+  if (!el || el.hidden) return;
+  el.classList.remove("open");
+  const panel = el.querySelector(".sheet");
+  const done = () => { el.hidden = true; panel.removeEventListener("transitionend", done); };
+  panel.addEventListener("transitionend", done);
+}
+
+// Watch action sheet
+const watchSheet = document.getElementById("watch-sheet");
+(function buildWatchSheet() {
+  const links = WATCH_LINKS.map(l =>
+    `<a href="${l.web}" target="_blank" rel="noopener"><img src="${l.icon}" alt="">${l.name}</a>`
+  ).join("");
+  watchSheet.querySelector(".sheet-group").innerHTML =
+    `<div class="sheet-title">Watch Live</div>${links}`;
+})();
+// Any Watch button (matches list or live board) opens the sheet
+document.addEventListener("click", e => {
+  if (e.target.closest(".mwatch")) openSheet(watchSheet);
+});
+
+// Backdrop tap, Cancel, or any chosen item dismisses whichever sheet is open
+document.addEventListener("click", e => {
+  const overlay = e.target.closest(".sheet-overlay");
+  if (!overlay) return;
+  if (e.target.closest(".sheet-backdrop") || e.target.closest(".sheet-cancel") ||
+      e.target.closest(".sheet-group a") || e.target.closest("[data-set-theme]")) {
+    closeSheet(overlay);
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") document.querySelectorAll(".sheet-overlay:not([hidden])").forEach(closeSheet);
 });
 
 // Debounce to one redraw per frame — resize fires rapidly during mobile
@@ -1797,6 +2060,94 @@ window.addEventListener("resize", () => {
   if (connectorRAF) cancelAnimationFrame(connectorRAF);
   connectorRAF = requestAnimationFrame(() => { connectorRAF = null; drawBracketConnectors(); });
 });
+
+// ── Pull to refresh (touch only) ────────────────
+(function () {
+  const ptr = document.getElementById("ptr");
+  const circle = ptr.querySelector(".ptr-circle");
+  const TH = 70, MAX = 110;
+  let startY = 0, dist = 0, pulling = false, refreshing = false;
+
+  const place = d => {
+    const p = Math.min(1, d / TH);
+    circle.style.transform = `translateY(${d}px) rotate(${p * 280}deg)`;
+    circle.style.opacity = p;
+  };
+  window.addEventListener("touchstart", e => {
+    if (refreshing || window.scrollY > 0 || e.touches.length !== 1) { pulling = false; return; }
+    ptr.classList.remove("settling");
+    startY = e.touches[0].clientY; dist = 0; pulling = true;
+    ptr.style.top = ((document.querySelector("header")?.offsetHeight || 60) - 14) + "px";
+  }, { passive: true });
+  window.addEventListener("touchmove", e => {
+    if (!pulling || refreshing) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0 || window.scrollY > 0) { dist = 0; place(0); pulling = window.scrollY <= 0; return; }
+    dist = Math.min(MAX, dy * 0.5);   // rubber-band resistance
+    place(dist);
+  }, { passive: true });
+  window.addEventListener("touchend", async () => {
+    if (!pulling || refreshing) { pulling = false; return; }
+    pulling = false;
+    ptr.classList.add("settling");
+    if (dist >= TH) {
+      refreshing = true; ptr.classList.add("spin");
+      circle.style.opacity = 1; circle.style.transform = `translateY(${TH}px)`;
+      try { await fetchData(); } catch (_) {}
+      setTimeout(() => { ptr.classList.remove("spin"); place(0); refreshing = false; }, 400);
+    } else {
+      place(0);
+    }
+  });
+})();
+
+// ── Theme: header button opens an Auto/Light/Dark picker ──
+const themeToggle = document.getElementById("theme-toggle");
+const themeSheet  = document.getElementById("theme-sheet");
+const THEME_ICONS = {
+  auto:  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" stroke="none"/></svg>',
+  light: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 1.5v2.5M12 20v2.5M3.5 12H1M23 12h-2.5M5.6 5.6 4 4M20 20l-1.6-1.6M18.4 5.6 20 4M4 20l1.6-1.6"/></svg>',
+  dark:  '<svg viewBox="0 0 24 24"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8Z"/></svg>',
+};
+const THEME_LABELS = { auto: "Auto", light: "Light", dark: "Dark" };
+const THEME_NOTE   = { auto: "Follows system", light: "", dark: "" };
+// ESPN ships a logo tuned for dark UIs and one for light
+const WC_LOGO = {
+  light: "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+  dark:  "https://a.espncdn.com/i/leaguelogos/soccer/500-dark/4.png",
+};
+function buildThemeSheet() {
+  const pref = window.__themePref();
+  const rows = ["auto", "light", "dark"].map(t => `
+    <button type="button" data-set-theme="${t}" class="${t === pref ? "sel" : ""}">
+      <span class="ts-ic">${THEME_ICONS[t]}</span>
+      <span class="ts-label">${THEME_LABELS[t]}${THEME_NOTE[t] ? `<em>${THEME_NOTE[t]}</em>` : ""}</span>
+      <span class="sheet-check">✓</span>
+    </button>`).join("");
+  themeSheet.querySelector(".sheet-group").innerHTML =
+    `<div class="sheet-title">Appearance</div>${rows}`;
+}
+function syncThemeUI() {
+  const pref = window.__themePref();
+  themeToggle.innerHTML = THEME_ICONS[pref];
+  themeToggle.setAttribute("aria-label", "Theme: " + THEME_LABELS[pref]);
+  themeToggle.title = "Theme: " + THEME_LABELS[pref];
+  const logo = document.querySelector(".wc-logo");
+  const want = WC_LOGO[window.__themeResolved()];
+  if (logo && logo.getAttribute("src") !== want) {
+    logo.onerror = () => { logo.onerror = null; logo.src = WC_LOGO.dark; };
+    logo.src = want;
+  }
+}
+themeToggle.addEventListener("click", () => { buildThemeSheet(); openSheet(themeSheet); });
+document.addEventListener("click", e => {
+  const btn = e.target.closest("[data-set-theme]");
+  if (!btn) return;
+  window.__setTheme(btn.dataset.setTheme);
+  syncThemeUI();
+});
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", syncThemeUI);
+syncThemeUI();
 
 /* ══════════════════════════════════════════════
    BOOT
@@ -1816,6 +2167,7 @@ setInterval(() => {
 <div class="toast-rack" id="toast-rack"></div>
 
 <nav class="bottom-nav" role="tablist" aria-label="Main navigation">
+  <span class="bn-indicator" aria-hidden="true"></span>
   <button class="tab live-tab" role="tab" data-view="live" id="bnav-live-btn" style="display:none">
     <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a6 6 0 0 0 0 7M15.5 8.5a6 6 0 0 1 0 7"/><path d="M5 5a13 13 0 0 0 0 14M19 5a13 13 0 0 1 0 14"/></svg>
     <span class="lt-inner"><span class="lt-pulse"></span><span>Live</span><span class="lt-count" id="bnav-count"></span></span>
