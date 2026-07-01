@@ -355,6 +355,10 @@ details.msec:not([open]) .chev { transform: rotate(-90deg); }
 }
 .mscore .mtime.ft { color: var(--faint); }
 .mscore.upco { font-size: 15px; color: var(--dim); font-weight: 400; }
+.mscore .mpens {
+  display: block; font-size: 11px; font-weight: 400;
+  color: var(--dim); letter-spacing: .02em;
+}
 
 /* watch-live dropdown (live rows only) */
 .mrow.live { grid-template-columns: 1fr auto 1fr auto; }
@@ -514,6 +518,7 @@ details.msec:not([open]) .chev { transform: rotate(-90deg); }
 .bm-team.bloser { color: var(--faint); }
 .bscore { font-family: var(--display); font-size: 15px; font-weight: 700; color: var(--text); }
 .bscore.lv { color: var(--red); }
+.bpens { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--faint); margin-left: 2px; }
 /* ── Skeleton loader ──────────────────────── */
 .skel {
   background: linear-gradient(90deg, var(--surf) 25%, var(--surf2) 50%, var(--surf) 75%);
@@ -1031,9 +1036,10 @@ function getTeamForm(teamName) {
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(-3)
     .map(m => {
-      const myG = m.home?.name === teamName ? (m.home?.goals ?? 0) : (m.away?.goals ?? 0);
-      const opG = m.home?.name === teamName ? (m.away?.goals ?? 0) : (m.home?.goals ?? 0);
-      return myG > opG ? 'W' : myG < opG ? 'L' : 'D';
+      const mine = m.home?.name === teamName ? m.home : m.away;
+      const opp  = m.home?.name === teamName ? m.away : m.home;
+      if (mine.goals === opp.goals && mine.pens != null) return mine.pens > opp.pens ? 'W' : 'L';
+      return mine.goals > opp.goals ? 'W' : mine.goals < opp.goals ? 'L' : 'D';
     });
 }
 
@@ -1204,7 +1210,9 @@ function matchRow(m) {
   if (state === "live") {
     score = `<div class="mscore">${m.home.goals ?? 0}–${m.away.goals ?? 0}<span class="mtime">● ${m.elapsed ?? "LIVE"}</span></div>`;
   } else if (state === "ft") {
-    score = `<div class="mscore">${m.home.goals}–${m.away.goals}<span class="mtime ft">FT</span></div>`;
+    const pens = m.home.pens != null && m.away.pens != null
+      ? `<span class="mpens">(pens ${m.home.pens}–${m.away.pens})</span>` : "";
+    score = `<div class="mscore">${m.home.goals}–${m.away.goals}${pens}<span class="mtime ft">FT</span></div>`;
   } else {
     score = `<div class="mscore upco">${fmtTime(m.date)}</div>`;
   }
@@ -1355,9 +1363,10 @@ function bracketTeamHtml(team, state) {
     ? `<span class="mflag" style="font-size:14px;line-height:1">${flag}</span>`
     : (team.logo ? `<img class="tlogo" src="${team.logo}" alt="">` : "");
   const loser = state === "ft" && !team.winner ? " bloser" : "";
+  const pens = state === "ft" && team.pens != null ? `<span class="bpens">(${team.pens})</span>` : "";
   const score = state === "ns" || team.goals == null
     ? ""
-    : `<span class="bscore${state === "live" ? " lv" : ""}">${team.goals}</span>`;
+    : `<span class="bscore${state === "live" ? " lv" : ""}">${team.goals}</span>${pens}`;
   return `<div class="bm-team set${loser}">${icon}<span class="btn-name">${team.name}</span>${score}</div>`;
 }
 
@@ -1781,6 +1790,8 @@ function detectKickoffs(newMatches) {
 function showFTToast(m) {
   const hFlag = flagOf(m.home), aFlag = flagOf(m.away);
   const hg = m.home.goals ?? 0, ag = m.away.goals ?? 0;
+  const pens = m.home.pens != null && m.away.pens != null
+    ? ` <span class="toast-pens">(pens ${m.home.pens}-${m.away.pens})</span>` : '';
   const rack  = document.getElementById('toast-rack');
   const toast = document.createElement('div');
   toast.className = 'toast ft';
@@ -1788,7 +1799,7 @@ function showFTToast(m) {
     <span class="toast-ball">🏁</span>
     <div class="toast-body">
       <div class="toast-who">Full Time</div>
-      <div class="toast-score">${hFlag || ''} ${m.home.name} ${hg} – ${ag} ${m.away.name} ${aFlag || ''}</div>
+      <div class="toast-score">${hFlag || ''} ${m.home.name} ${hg} – ${ag} ${m.away.name} ${aFlag || ''}${pens}</div>
     </div>`;
   rack.appendChild(toast);
   setTimeout(() => {

@@ -116,6 +116,7 @@ async function fetchMatches() {
         slot:   placeholder ? slotCode(raw) : null,
         logo:   placeholder ? null : (t.team?.logos?.[0]?.href ?? null),
         goals:  st.state === "pre" ? null : parseInt(t.score ?? "0", 10),
+        pens:   t.shootoutScore ?? null,
         winner: t.winner === true,
       };
     };
