@@ -1348,6 +1348,61 @@ function buildBracketResolution() {
   return { assigned, winners };
 }
 
+// The bracket's connector lines (drawBracketConnectors) are drawn purely by
+// DOM position — column c's slot i connects to whichever two slots sit at
+// positions 2i/2i+1 in column c-1, with zero regard for which teams are
+// actually in those cells. BRACKET_COLS's static h/a "W##" codes assume a
+// fixed adjacent-pair wiring (e.g. M92 = W79/W80), but the live draw doesn't
+// follow it (M92 is really fed by M78 and M82's winners) — so the lines were
+// visually pointing at the wrong feeder matches even though each cell's own
+// team names were already correct. This walks the tree from the Final
+// backward to Round of 32, and for every later-round match that has a real,
+// fully-decided fixture, finds which two earlier-round matches actually
+// produced those two teams (by winner name) and places them at that match's
+// 2i/2i+1 slots. Anything not yet decided keeps the static default pairing
+// as a placeholder guess (best info available until it resolves for real).
+function computeColumnOrder(assigned) {
+  const order = new Array(BRACKET_COLS.length);
+  order[BRACKET_COLS.length - 1] = BRACKET_COLS[BRACKET_COLS.length - 1].matches.map(bm => bm.m);
+
+  for (let c = BRACKET_COLS.length - 1; c >= 1; c--) {
+    const laterOrder = order[c];
+    const earlierDefaultOrder = BRACKET_COLS[c - 1].matches.map(bm => bm.m);
+    const claimed = new Set();
+    const newEarlierOrder = new Array(earlierDefaultOrder.length);
+    const unresolved = [];
+
+    laterOrder.forEach((laterM, i) => {
+      const ev = assigned.get(laterM);
+      let pair = null;
+      if (ev && ev.home?.name && ev.away?.name) {
+        const findFeeder = teamName => {
+          for (const em of earlierDefaultOrder) {
+            if (claimed.has(em)) continue;
+            const eev = assigned.get(em);
+            const w = eev?.home?.winner ? eev.home : eev?.away?.winner ? eev.away : null;
+            if (w?.name === teamName) return em;
+          }
+          return null;
+        };
+        const hF = findFeeder(ev.home.name), aF = findFeeder(ev.away.name);
+        if (hF != null && aF != null) { pair = [hF, aF]; claimed.add(hF); claimed.add(aF); }
+      }
+      if (pair) { newEarlierOrder[2 * i] = pair[0]; newEarlierOrder[2 * i + 1] = pair[1]; }
+      else unresolved.push(i);
+    });
+
+    const leftover = earlierDefaultOrder.filter(em => !claimed.has(em));
+    let li = 0;
+    for (const i of unresolved) {
+      newEarlierOrder[2 * i] = leftover[li++];
+      newEarlierOrder[2 * i + 1] = leftover[li++];
+    }
+    order[c - 1] = newEarlierOrder;
+  }
+  return order;
+}
+
 function fmtBracketDate(isoDate) {
   const d = new Date(isoDate);
   const hr = d.getHours(), min = d.getMinutes();
@@ -1374,9 +1429,12 @@ function renderBracket() {
   const el = document.getElementById("bracket");
   const { assigned, winners } = buildBracketResolution();
   bracketAssigned = assigned;
+  const colOrder = computeColumnOrder(assigned);
 
-  el.innerHTML = BRACKET_COLS.map(col => {
-    const slots  = col.matches.map(m => {
+  el.innerHTML = BRACKET_COLS.map((col, colIdx) => {
+    const byNum = new Map(col.matches.map(bm => [bm.m, bm]));
+    const renderMatches = colOrder[colIdx].map(mnum => byNum.get(mnum));
+    const slots  = renderMatches.map(m => {
       const ev = assigned.get(m.m);
 
       let teamsHtml, status = "", hasCanada = false;
