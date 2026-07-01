@@ -1284,67 +1284,59 @@ function roundKey(name) {
   return null;
 }
 
-// Pair ESPN knockout events to bracket slots within one round:
-// prefer same venue keyword + same date, fall back to chronological order.
-function assignEvents(colMatches, events) {
-  const used = new Set();
-  const out = new Map();
-  const token = v => (v || "").split(/[\s·]+/)[0].toLowerCase();
-
-  for (const bm of colMatches) {
-    let best = null, bestScore = 0;
-    events.forEach((ev, i) => {
-      if (used.has(i)) return;
-      let s = 0;
-      // exact slot codes from ESPN placeholders (R32) are definitive
-      if (ev.home?.slot && ev.home.slot === bm.h) s += 5;
-      if (ev.away?.slot && ev.away.slot === bm.a) s += 5;
-      if (token(bm.v) && (ev.venue || "").toLowerCase().includes(token(bm.v))) s += 2;
-      const evDay = new Date(ev.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      if (evDay === bm.d) s += 1;
-      if (s > bestScore) { best = i; bestScore = s; }
-    });
-    if (best !== null) { used.add(best); out.set(bm.m, events[best]); }
-  }
-  // leftovers paired in order
-  const leftover = events.map((_, i) => i).filter(i => !used.has(i));
-  let k = 0;
-  for (const bm of colMatches) {
-    if (!out.has(bm.m) && k < leftover.length) out.set(bm.m, events[leftover[k++]]);
-  }
-  return out;
-}
-
 // Walk the bracket once: map ESPN events onto slots and collect winners
 // so "W73"-style codes resolve as soon as the earlier match finishes.
+//
+// ESPN's event ids for this feed are allocated contiguously in strict
+// official-match-number order (id rank 1..104 === FIFA match number 1..104),
+// which is far more reliable than matching on venue/date text — the static
+// BRACKET_COLS venue/date reference data is sourced from a different mock
+// (the FIFA bracket connector) and doesn't agree with the live ESPN venues,
+// so fuzzy matching on it was binding real events to the wrong bracket
+// cells and made the same team appear to resolve twice.
 function buildBracketResolution() {
   const assigned = new Map();   // match number -> ESPN event
   const winners  = {};          // match number -> { name, logo }
-  if (!matchesData) return { assigned, winners };
+  if (!matchesData || !matchesData.length) return { assigned, winners };
 
-  const byRound = {};
-  for (const m of matchesData) {
-    const k = roundKey(m.round);
-    if (k) (byRound[k] ??= []).push(m);
-  }
-  Object.values(byRound).forEach(a => a.sort((x, y) => new Date(x.date) - new Date(y.date)));
+  const minId = Math.min(...matchesData.map(m => parseInt(m.id, 10)));
+  const byMatchNumber = new Map();
+  for (const m of matchesData) byMatchNumber.set(parseInt(m.id, 10) - minId + 1, m);
 
-  for (const col of BRACKET_COLS) {
-    const map = assignEvents(col.matches, byRound[roundKey(col.round)] ?? []);
-    for (const [mnum, ev] of map) {
-      assigned.set(mnum, ev);
-      if (matchState(ev.status) === "ft") {
-        const w = ev.home.winner ? ev.home : ev.away.winner ? ev.away : null;
-        if (w?.name) winners[mnum] = { name: w.name, logo: w.logo };
-      }
+  const matchCol = new Map(); // match number -> bracket column index (round order)
+  BRACKET_COLS.forEach((col, i) => {
+    for (const bm of col.matches) {
+      const ev = byMatchNumber.get(bm.m);
+      if (ev) assigned.set(bm.m, ev);
+      matchCol.set(bm.m, i);
     }
     if (col.thirdPlace) {
-      const tpMap = assignEvents([col.thirdPlace], byRound["Third place"] ?? []);
-      for (const [mnum, ev] of tpMap) {
-        assigned.set(mnum, ev);
-      }
+      const ev = byMatchNumber.get(col.thirdPlace.m);
+      if (ev) assigned.set(col.thirdPlace.m, ev);
+    }
+  });
+
+  // The live feed's own knockout draw doesn't always pair winners the same
+  // way the static W-code wiring above assumes (e.g. it might send M78's and
+  // M82's winners straight into match 92, not M79/M80 as "sequential" wiring
+  // implies). So before projecting "Winner M##" forward, check whether that
+  // team is already locked into a real fixture in a LATER round — if so, the
+  // real fixture wins and we skip the projection, instead of showing the same
+  // team twice.
+  const nameMaxCol = new Map();
+  for (const [mnum, ev] of assigned) {
+    const col = matchCol.get(mnum);
+    for (const side of [ev.home, ev.away]) {
+      if (side?.name && col > (nameMaxCol.get(side.name) ?? -1)) nameMaxCol.set(side.name, col);
     }
   }
+  for (const [mnum, ev] of assigned) {
+    if (matchState(ev.status) !== "ft") continue;
+    const w = ev.home.winner ? ev.home : ev.away.winner ? ev.away : null;
+    if (!w?.name) continue;
+    if ((nameMaxCol.get(w.name) ?? -1) <= matchCol.get(mnum)) winners[mnum] = { name: w.name, logo: w.logo };
+  }
+
   return { assigned, winners };
 }
 
