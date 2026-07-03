@@ -1372,32 +1372,40 @@ function computeColumnOrder(assigned) {
     const newEarlierOrder = new Array(earlierDefaultOrder.length);
     const unresolved = [];
 
+    const findFeeder = teamName => {
+      for (const em of earlierDefaultOrder) {
+        if (claimed.has(em)) continue;
+        const eev = assigned.get(em);
+        const w = eev?.home?.winner ? eev.home : eev?.away?.winner ? eev.away : null;
+        if (w?.name === teamName) return em;
+      }
+      return null;
+    };
+
+    // A later match's two sides can resolve independently and at different
+    // times (e.g. ESPN schedules "Switzerland vs TBD" as soon as M85 ends,
+    // while the opponent slot stays open until whichever of M87/M88 finishes
+    // - it is NOT necessarily M86, even though M86 also finished earlier).
+    // Requiring both sides to be real before reordering (as a prior version
+    // of this function did) left both slots on the static default, wrongly
+    // connector-lining M86's winner into M95 instead of M96 just because
+    // M85/M86 sit adjacent in the static array. Resolve each side on its
+    // own so a single known side still binds to its real feeder.
     laterOrder.forEach((laterM, i) => {
       const ev = assigned.get(laterM);
-      let pair = null;
-      if (ev && ev.home?.name && ev.away?.name) {
-        const findFeeder = teamName => {
-          for (const em of earlierDefaultOrder) {
-            if (claimed.has(em)) continue;
-            const eev = assigned.get(em);
-            const w = eev?.home?.winner ? eev.home : eev?.away?.winner ? eev.away : null;
-            if (w?.name === teamName) return em;
-          }
-          return null;
-        };
-        const hF = findFeeder(ev.home.name), aF = findFeeder(ev.away.name);
-        if (hF != null && aF != null) { pair = [hF, aF]; claimed.add(hF); claimed.add(aF); }
-      }
-      if (pair) { newEarlierOrder[2 * i] = pair[0]; newEarlierOrder[2 * i + 1] = pair[1]; }
-      else unresolved.push(i);
+      const hF = ev?.home?.name ? findFeeder(ev.home.name) : null;
+      if (hF != null) claimed.add(hF);
+      const aF = ev?.away?.name ? findFeeder(ev.away.name) : null;
+      if (aF != null) claimed.add(aF);
+      newEarlierOrder[2 * i] = hF;
+      newEarlierOrder[2 * i + 1] = aF;
+      if (hF == null) unresolved.push(2 * i);
+      if (aF == null) unresolved.push(2 * i + 1);
     });
 
     const leftover = earlierDefaultOrder.filter(em => !claimed.has(em));
     let li = 0;
-    for (const i of unresolved) {
-      newEarlierOrder[2 * i] = leftover[li++];
-      newEarlierOrder[2 * i + 1] = leftover[li++];
-    }
+    for (const slot of unresolved) newEarlierOrder[slot] = leftover[li++];
     order[c - 1] = newEarlierOrder;
   }
   return order;
@@ -1438,12 +1446,18 @@ function renderBracket() {
       const ev = assigned.get(m.m);
 
       let teamsHtml, status = "", hasCanada = false;
-      if (ev && ev.home?.name && ev.away?.name) {
+      const hasAnyRealTeam = ev && (ev.home?.name || ev.away?.name);
+      if (hasAnyRealTeam) {
         const state = matchState(ev.status);
-        teamsHtml = bracketTeamHtml(ev.home, state) + bracketTeamHtml(ev.away, state);
+        const renderSide = (side) => {
+          if (side?.name) return bracketTeamHtml(side, state);
+          const flag = FLAGS["TBD"] ?? "";
+          return `<div class="bm-team tbd">${flag ? flag+" " : ""}TBD</div>`;
+        };
+        teamsHtml = renderSide(ev.home) + renderSide(ev.away);
         if (state === "live") status = `<span style="color:var(--red)">● ${ev.elapsed ?? "LIVE"}</span>`;
         else if (state === "ft") status = "FT";
-        hasCanada = ev.home.name === "Canada" || ev.away.name === "Canada";
+        hasCanada = ev.home?.name === "Canada" || ev.away?.name === "Canada";
       } else {
         const h = slotLabel(m.h, winners), a = slotLabel(m.a, winners);
         const tHtml = t => {
@@ -1471,9 +1485,15 @@ function renderBracket() {
       const tp = col.thirdPlace;
       const ev = assigned.get(tp.m);
       let teamsHtml, status = "";
-      if (ev && ev.home?.name && ev.away?.name) {
+      const hasAnyRealTeam = ev && (ev.home?.name || ev.away?.name);
+      if (hasAnyRealTeam) {
         const state = matchState(ev.status);
-        teamsHtml = bracketTeamHtml(ev.home, state) + bracketTeamHtml(ev.away, state);
+        const renderSide = (side) => {
+          if (side?.name) return bracketTeamHtml(side, state);
+          const flag = FLAGS["TBD"] ?? "";
+          return `<div class="bm-team tbd">${flag ? flag+" " : ""}TBD</div>`;
+        };
+        teamsHtml = renderSide(ev.home) + renderSide(ev.away);
         if (state === "live") status = `<span style="color:var(--red)">● ${ev.elapsed ?? "LIVE"}</span>`;
         else if (state === "ft") status = "FT";
       } else {
